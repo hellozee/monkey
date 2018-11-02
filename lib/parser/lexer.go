@@ -31,6 +31,12 @@ func (l *lexer) next() token {
 
 	switch l.char {
 	case '=':
+		if l.peek() == '=' {
+			char := l.char
+			l.read()
+			tok = token{ttype: EQ, literal: string(char) + string(l.char)}
+			break
+		}
 		tok = newtoken(ASSIGN, l.char)
 	case ';':
 		tok = newtoken(SEMICOLON, l.char)
@@ -46,6 +52,24 @@ func (l *lexer) next() token {
 		tok = newtoken(COMMA, l.char)
 	case '+':
 		tok = newtoken(PLUS, l.char)
+	case '-':
+		tok = newtoken(MINUS, l.char)
+	case '*':
+		tok = newtoken(ASTERISK, l.char)
+	case '/':
+		tok = newtoken(SLASH, l.char)
+	case '<':
+		tok = newtoken(LT, l.char)
+	case '>':
+		tok = newtoken(GT, l.char)
+	case '!':
+		if l.peek() == '=' {
+			char := l.char
+			l.read()
+			tok = token{ttype: NOTEQ, literal: string(char) + string(l.char)}
+			break
+		}
+		tok = newtoken(BANG, l.char)
 	case 0:
 		tok.literal = ""
 		tok.ttype = EOF
@@ -80,6 +104,13 @@ func (l *lexer) readnumber() string {
 		l.read()
 	}
 	return l.input[pos:l.pos]
+}
+
+func (l *lexer) peek() byte {
+	if l.readPos >= len(l.input) {
+		return 0
+	}
+	return l.input[l.readPos]
 }
 
 func (l *lexer) skipspace() {

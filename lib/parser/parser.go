@@ -44,13 +44,15 @@ func (p *Parser) parsestatement() statement {
 	switch p.curtok.ttype {
 	case LET:
 		return p.parselet()
+	case RETURN:
+		return p.parsereturn()
 	default:
 		return nil
 	}
 }
 
-func (p *Parser) parselet() *let {
-	stmt := &let{tok: p.curtok}
+func (p *Parser) parselet() *letstatement {
+	stmt := &letstatement{tok: p.curtok}
 
 	if !p.expect(IDENT) {
 		return nil
@@ -62,6 +64,15 @@ func (p *Parser) parselet() *let {
 		return nil
 	}
 
+	for !p.curtokis(SEMICOLON) {
+		p.next()
+	}
+	return stmt
+}
+
+func (p *Parser) parsereturn() *returnstatement {
+	stmt := &returnstatement{tok: p.curtok}
+	p.next()
 	for !p.curtokis(SEMICOLON) {
 		p.next()
 	}

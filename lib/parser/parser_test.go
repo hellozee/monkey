@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -9,9 +10,7 @@ func TestLetStatements(t *testing.T) {
 let y = 10;
 let foo = 838383;`
 
-	l := newlexer(input)
-	p := NewParser(l)
-
+	p := NewParser(input)
 	program := p.Parse()
 	checkparseerrors(t, p)
 
@@ -69,9 +68,7 @@ func TestReturnStatements(t *testing.T) {
 return 10;
 return 90234820;`
 
-	l := newlexer(input)
-	p := NewParser(l)
-
+	p := NewParser(input)
 	program := p.Parse()
 	checkparseerrors(t, p)
 
@@ -121,12 +118,10 @@ func TestString(t *testing.T) {
 
 func TestIdenfierExpressions(t *testing.T) {
 	input := "foo;"
-
-	l := newlexer(input)
-	p := NewParser(l)
-
+	p := NewParser(input)
 	prog := p.Parse()
 	checkparseerrors(t, p)
+
 	if len(prog.statements) != 1 {
 		t.Fatalf("program doesn't have enough statements, got %d", len(prog.statements))
 	}
@@ -154,12 +149,10 @@ func TestIdenfierExpressions(t *testing.T) {
 
 func TestIntegerLiteral(t *testing.T) {
 	input := "5;"
-
-	l := newlexer(input)
-	p := NewParser(l)
-
+	p := NewParser(input)
 	prog := p.Parse()
 	checkparseerrors(t, p)
+
 	if len(prog.statements) != 1 {
 		t.Fatalf("program doesn't have enough statements, got %d", len(prog.statements))
 	}
@@ -183,6 +176,63 @@ func TestIntegerLiteral(t *testing.T) {
 	if literal.tokenliteral() != "5" {
 		t.Errorf("literal.tokenliteral() not %d got %s", 5, literal.tokenliteral())
 	}
+}
+
+func TestParsingPrefixExpressions(t *testing.T) {
+	tests := []struct {
+		input    string
+		operator string
+		intval   int64
+	}{
+		{"!5", "!", 5},
+		{"-15", "-", 15},
+	}
+
+	for _, tt := range tests {
+		p := NewParser(tt.input)
+		prog := p.Parse()
+		checkparseerrors(t, p)
+
+		if len(prog.statements) != 1 {
+			t.Fatalf("prog.statements doesn't contain %d statements, got %d\n", 1, len(prog.statements))
+		}
+
+		stmt, ok := prog.statements[0].(*expressionstatement)
+		if !ok {
+			t.Fatalf("prog.statements[0] is not a expression statement, got %T\n", stmt)
+		}
+
+		expr, ok := stmt.expr.(*prefixexpr)
+		if !ok {
+			t.Fatalf("stmt is not prefixexpr. got=%T", stmt.expr)
+		}
+
+		if expr.operator != tt.operator {
+			t.Fatalf("expr.operator is not '%s'. got=%s", tt.operator, expr.operator)
+		}
+
+		if !testIntegerLiteral(t, expr.right, tt.intval) {
+			return
+		}
+	}
+}
+
+func testIntegerLiteral(t *testing.T, i expression, value int64) bool {
+	integer, ok := i.(*intliteral)
+	if !ok {
+		t.Errorf("i not intliteral. got=%T", i)
+		return false
+	}
+
+	if integer.value != value {
+		t.Errorf("integ.Value not %d. got=%d", value, integer.value)
+		return false
+	}
+	if integer.tokenliteral() != fmt.Sprintf("%d", value) {
+		t.Errorf("integ.TokenLiteral not %d. got=%s", value, integer.tokenliteral())
+		return false
+	}
+	return true
 }
 
 func checkparseerrors(t *testing.T, p *Parser) {

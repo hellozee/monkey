@@ -32,13 +32,19 @@ type Parser struct {
 	infixparsefns  map[tokenType]infixparse
 }
 
-func NewParser(l *lexer) *Parser {
+func NewParser(input string) *Parser {
+	l := newlexer(input)
 	temp := Parser{lex: l, errors: []string{}}
+
 	temp.curtok = l.next()
 	temp.nexttok = l.next()
+
 	temp.prefixparsefns = make(map[tokenType]prefixparse)
 	temp.registerprefix(IDENT, temp.parseident)
 	temp.registerprefix(INT, temp.parseintliteral)
+	temp.registerprefix(MINUS, temp.parseprefixexpr)
+	temp.registerprefix(BANG, temp.parseprefixexpr)
+
 	return &temp
 }
 
@@ -124,6 +130,7 @@ func (p *Parser) parseexpr(precedence int) expression {
 	prefix := p.prefixparsefns[p.curtok.ttype]
 
 	if prefix == nil {
+		p.noprefixfound(p.curtok.ttype)
 		return nil
 	}
 
@@ -145,6 +152,17 @@ func (p *Parser) parseintliteral() expression {
 	return lit
 }
 
+func (p *Parser) parseprefixexpr() expression {
+	expr := &prefixexpr{
+		tok:      p.curtok,
+		operator: p.curtok.literal,
+	}
+
+	p.next()
+	expr.right = p.parseexpr(PREFIX)
+	return expr
+}
+
 func (p *Parser) curtokis(t tokenType) bool {
 	return p.curtok.ttype == t
 }
@@ -164,6 +182,11 @@ func (p *Parser) expect(t tokenType) bool {
 
 func (p *Parser) peekerror(t tokenType) {
 	msg := fmt.Sprintf("expected next token is %s, got %s instead", t, p.nexttok.ttype)
+	p.errors = append(p.errors, msg)
+}
+
+func (p *Parser) noprefixfound(t tokenType) {
+	msg := fmt.Sprintf("no prefix parse function for %s found", t)
 	p.errors = append(p.errors, msg)
 }
 

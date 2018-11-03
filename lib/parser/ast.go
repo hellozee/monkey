@@ -117,3 +117,21 @@ type intliteral struct {
 func (i *intliteral) expressionnode()      {}
 func (i *intliteral) tokenliteral() string { return i.tok.literal }
 func (i *intliteral) tostring() string     { return i.tok.literal }
+
+type prefixexpr struct {
+	tok      token
+	operator string
+	right    expression
+}
+
+func (p *prefixexpr) expressionnode()      {}
+func (p *prefixexpr) tokenliteral() string { return p.tok.literal }
+
+func (p *prefixexpr) tostring() string {
+	var out bytes.Buffer
+	out.WriteString("(")
+	out.WriteString(p.operator)
+	out.WriteString(p.right.tostring())
+	out.WriteString(")")
+	return out.String()
+}

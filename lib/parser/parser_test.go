@@ -1,6 +1,8 @@
 package parser
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestLetStatements(t *testing.T) {
 	input := `let x = 5;
@@ -92,6 +94,94 @@ return 90234820;`
 		if returnstmt.tokenliteral() != "return" {
 			t.Errorf("returnStmt.TokenLiteral not 'return', got %q", returnstmt.tokenliteral())
 		}
+	}
+}
+
+func TestString(t *testing.T) {
+	program := &program{
+		statements: []statement{
+			&letstatement{
+				tok: token{ttype: LET, literal: "let"},
+				name: &identifier{
+					tok:   token{ttype: IDENT, literal: "foo"},
+					value: "foo",
+				},
+				value: &identifier{
+					tok:   token{ttype: IDENT, literal: "bar"},
+					value: "bar",
+				},
+			},
+		},
+	}
+
+	if program.tostring() != "let foo = bar;" {
+		t.Errorf("program.tostring() wrong. got=%q", program.tostring())
+	}
+}
+
+func TestIdenfierExpressions(t *testing.T) {
+	input := "foo;"
+
+	l := newlexer(input)
+	p := NewParser(l)
+
+	prog := p.Parse()
+	checkparseerrors(t, p)
+	if len(prog.statements) != 1 {
+		t.Fatalf("program doesn't have enough statements, got %d", len(prog.statements))
+	}
+
+	stmt, ok := prog.statements[0].(*expressionstatement)
+
+	if !ok {
+		t.Fatalf("prog.statement[0] is not an expression statement, got %T", prog.statements[0])
+	}
+
+	ident, ok := stmt.expr.(*identifier)
+
+	if !ok {
+		t.Fatalf("expression.expr is not an identifier, got %T", ident.value)
+	}
+
+	if ident.value != "foo" {
+		t.Errorf("ident.value not %s, got %s", "foo", ident.value)
+	}
+
+	if ident.tokenliteral() != "foo" {
+		t.Errorf("ident.tokenliteral() not %s got %s", "foo", ident.tokenliteral())
+	}
+}
+
+func TestIntegerLiteral(t *testing.T) {
+	input := "5;"
+
+	l := newlexer(input)
+	p := NewParser(l)
+
+	prog := p.Parse()
+	checkparseerrors(t, p)
+	if len(prog.statements) != 1 {
+		t.Fatalf("program doesn't have enough statements, got %d", len(prog.statements))
+	}
+
+	stmt, ok := prog.statements[0].(*expressionstatement)
+
+	if !ok {
+		t.Fatalf("prog.statement[0] is not an expression statement, got %T", prog.statements[0])
+	}
+
+	literal, ok := stmt.expr.(*intliteral)
+
+	if !ok {
+		t.Fatalf("expression.expr is not an integer literal, got %T", literal.value)
+	}
+
+	if literal.value != 5 {
+		t.Errorf("literal.value not %d, got %d", 5, literal.value)
+	}
+
+	if literal.tokenliteral() != "5" {
+		t.Errorf("literal.tokenliteral() not %d got %s", 5, literal.tokenliteral())
 	}
 }
 

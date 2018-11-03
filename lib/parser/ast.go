@@ -155,3 +155,12 @@ func (i *infixexpr) tostring() string {
 	out.WriteString(")")
 	return out.String()
 }
+
+type boolexpr struct {
+	tok   token
+	value bool
+}
+
+func (b *boolexpr) expressionnode()      {}
+func (b *boolexpr) tokenliteral() string { return b.tok.literal }
+func (b *boolexpr) tostring() string     { return b.tok.literal }

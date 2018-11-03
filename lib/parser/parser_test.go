@@ -47,17 +47,17 @@ func testLetStatement(t *testing.T, s statement, name string) bool {
 	letstmt, ok := s.(*letstatement)
 
 	if !ok {
-		t.Errorf("s not *ast.letstatement. got=%T", s)
+		t.Errorf("s not *letstatement. got=%T", s)
 		return false
 	}
 
 	if letstmt.name.value != name {
-		t.Errorf("letStmt.Name.Value not '%s'. got=%s", name, letstmt.name.value)
+		t.Errorf("letstmt.name.value not '%s'. got=%s", name, letstmt.name.value)
 		return false
 	}
 
 	if letstmt.name.tokenliteral() != name {
-		t.Errorf("s.Name not '%s'. got=%s", name, letstmt.name)
+		t.Errorf("s.name not '%s'. got=%s", name, letstmt.name)
 		return false
 	}
 	return true
@@ -347,6 +347,39 @@ func TestOperatorPrecedence(t *testing.T) {
 		actual := prog.tostring()
 		if actual != tt.expected {
 			t.Errorf("expected=%q, got=%q", tt.expected, actual)
+		}
+	}
+}
+
+func TestBoolExpression(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected bool
+	}{
+		{"true;", true},
+		{"false;", false},
+	}
+
+	for _, tt := range tests {
+		p := NewParser(tt.input)
+		prog := p.Parse()
+		checkparseerrors(t, p)
+
+		if len(prog.statements) != 1 {
+			t.Fatalf("prog.statements does not contain %d statements. got=%d\n", 1, len(prog.statements))
+		}
+
+		stmt, ok := prog.statements[0].(*expressionstatement)
+		if !ok {
+			t.Fatalf("prog.statements[0] is not expressionstatement. got=%T",
+				prog.statements[0])
+		}
+		expr, ok := stmt.expr.(*boolexpr)
+		if !ok {
+			t.Fatalf("expr is not boolexpr. got=%T", stmt.expr)
+		}
+		if expr.value != tt.expected {
+			t.Fatalf("expr.value is not '%t'. got=%t", tt.expected, expr.value)
 		}
 	}
 }

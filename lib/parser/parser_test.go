@@ -217,24 +217,6 @@ func TestParsingPrefixExpressions(t *testing.T) {
 	}
 }
 
-func testIntegerLiteral(t *testing.T, i expression, value int64) bool {
-	integer, ok := i.(*intliteral)
-	if !ok {
-		t.Errorf("i not intliteral. got=%T", i)
-		return false
-	}
-
-	if integer.value != value {
-		t.Errorf("integ.Value not %d. got=%d", value, integer.value)
-		return false
-	}
-	if integer.tokenliteral() != fmt.Sprintf("%d", value) {
-		t.Errorf("integ.TokenLiteral not %d. got=%s", value, integer.tokenliteral())
-		return false
-	}
-	return true
-}
-
 func TestParsingInfixExpressions(t *testing.T) {
 	tests := []struct {
 		input    string
@@ -278,6 +260,93 @@ func TestParsingInfixExpressions(t *testing.T) {
 		}
 		if !testIntegerLiteral(t, expr.right, tt.right) {
 			return
+		}
+	}
+}
+
+func testIntegerLiteral(t *testing.T, i expression, value int64) bool {
+	integer, ok := i.(*intliteral)
+	if !ok {
+		t.Errorf("i not intliteral. got=%T", i)
+		return false
+	}
+
+	if integer.value != value {
+		t.Errorf("integ.Value not %d. got=%d", value, integer.value)
+		return false
+	}
+	if integer.tokenliteral() != fmt.Sprintf("%d", value) {
+		t.Errorf("integ.TokenLiteral not %d. got=%s", value, integer.tokenliteral())
+		return false
+	}
+	return true
+}
+
+func TestOperatorPrecedence(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{
+			"-a * b",
+			"((-a) * b)",
+		},
+		{
+			"!-a",
+			"(!(-a))",
+		},
+		{
+			"a + b + c",
+			"((a + b) + c)",
+		},
+		{
+			"a + b - c",
+			"((a + b) - c)",
+		},
+		{
+			"a * b * c",
+			"((a * b) * c)",
+		},
+		{
+			"a * b / c",
+			"((a * b) / c)",
+		},
+		{
+			"a + b / c",
+			"(a + (b / c))",
+		},
+		{
+			"a + b * c + d / e - f",
+			"(((a + (b * c)) + (d / e)) - f)",
+		},
+		{
+			"3 + 4; -5 * 5",
+			"(3 + 4)((-5) * 5)",
+		},
+		{
+			"5 > 4 == 3 < 4",
+			"((5 > 4) == (3 < 4))",
+		},
+		{
+			"5 < 4 != 3 > 4",
+			"((5 < 4) != (3 > 4))",
+		},
+		{
+			"3 + 4 * 5 == 3 * 1 + 4 * 5",
+			"((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))"},
+		{
+			"3 + 4 * 5 == 3 * 1 + 4 * 5",
+			"((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
+		},
+	}
+
+	for _, tt := range tests {
+		p := NewParser(tt.input)
+		prog := p.Parse()
+		checkparseerrors(t, p)
+		actual := prog.tostring()
+		if actual != tt.expected {
+			t.Errorf("expected=%q, got=%q", tt.expected, actual)
 		}
 	}
 }

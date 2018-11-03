@@ -149,7 +149,8 @@ func (i *infixexpr) tokenliteral() string { return i.tok.literal }
 func (i *infixexpr) tostring() string {
 	var out bytes.Buffer
 	out.WriteString("(")
-	out.WriteString(i.operator)
+	out.WriteString(i.left.tostring())
+	out.WriteString(" " + i.operator + " ")
 	out.WriteString(i.right.tostring())
 	out.WriteString(")")
 	return out.String()

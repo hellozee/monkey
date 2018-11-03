@@ -7,8 +7,8 @@ import (
 
 func TestLetStatements(t *testing.T) {
 	input := `let x = 5;
-let y = 10;
-let foo = 838383;`
+			let y = 10;
+			let foo = 838383;`
 
 	p := NewParser(input)
 	program := p.Parse()
@@ -65,8 +65,8 @@ func testLetStatement(t *testing.T, s statement, name string) bool {
 
 func TestReturnStatements(t *testing.T) {
 	input := `return 5;
-return 10;
-return 90234820;`
+			  return 10;
+			  return 90234820;`
 
 	p := NewParser(input)
 	program := p.Parse()
@@ -233,6 +233,53 @@ func testIntegerLiteral(t *testing.T, i expression, value int64) bool {
 		return false
 	}
 	return true
+}
+
+func TestParsingInfixExpressions(t *testing.T) {
+	tests := []struct {
+		input    string
+		left     int64
+		operator string
+		right    int64
+	}{
+		{"5 + 5", 5, "+", 5},
+		{"5 - 5", 5, "-", 5},
+		{"5 * 5", 5, "*", 5},
+		{"5 / 5", 5, "/", 5},
+		{"5 > 5", 5, ">", 5},
+		{"5 < 5", 5, "<", 5},
+		{"5 == 5", 5, "==", 5},
+		{"5 != 5", 5, "!=", 5},
+	}
+
+	for _, tt := range tests {
+		p := NewParser(tt.input)
+		prog := p.Parse()
+		checkparseerrors(t, p)
+
+		if len(prog.statements) != 1 {
+			t.Fatalf("prog.statements does not contain %d statements. got=%d\n", 1, len(prog.statements))
+		}
+
+		stmt, ok := prog.statements[0].(*expressionstatement)
+		if !ok {
+			t.Fatalf("prog.statements[0] is not expressionstatement. got=%T",
+				prog.statements[0])
+		}
+		expr, ok := stmt.expr.(*infixexpr)
+		if !ok {
+			t.Fatalf("expr is not infixexpr. got=%T", stmt.expr)
+		}
+		if !testIntegerLiteral(t, expr.left, tt.left) {
+			return
+		}
+		if expr.operator != tt.operator {
+			t.Fatalf("expr.operator is not '%s'. got=%s", tt.operator, expr.operator)
+		}
+		if !testIntegerLiteral(t, expr.right, tt.right) {
+			return
+		}
+	}
 }
 
 func checkparseerrors(t *testing.T, p *Parser) {

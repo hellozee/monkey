@@ -16,6 +16,17 @@ const (
 	CALL
 )
 
+var precedences = map[tokenType]int{
+	EQ:       EQUALS,
+	NOTEQ:    EQUALS,
+	LT:       LESSGREATER,
+	GT:       LESSGREATER,
+	PLUS:     SUM,
+	MINUS:    SUM,
+	ASTERISK: PRODUCT,
+	SLASH:    PRODUCT,
+}
+
 type (
 	prefixparse func() expression
 	infixparse  func(expression) expression
@@ -44,6 +55,16 @@ func NewParser(input string) *Parser {
 	temp.registerprefix(INT, temp.parseintliteral)
 	temp.registerprefix(MINUS, temp.parseprefixexpr)
 	temp.registerprefix(BANG, temp.parseprefixexpr)
+
+	temp.infixparsefns = make(map[tokenType]infixparse)
+	temp.registerinfix(PLUS, temp.parseinfixexpr)
+	temp.registerinfix(MINUS, temp.parseinfixexpr)
+	temp.registerinfix(ASTERISK, temp.parseinfixexpr)
+	temp.registerinfix(SLASH, temp.parseinfixexpr)
+	temp.registerinfix(LT, temp.parseinfixexpr)
+	temp.registerinfix(GT, temp.parseinfixexpr)
+	temp.registerinfix(EQ, temp.parseinfixexpr)
+	temp.registerinfix(NOTEQ, temp.parseinfixexpr)
 
 	return &temp
 }
@@ -135,6 +156,16 @@ func (p *Parser) parseexpr(precedence int) expression {
 	}
 
 	left := prefix()
+
+	for !p.nexttokis(SEMICOLON) && precedence < p.peekprecedence() {
+		infix := p.infixparsefns[p.nexttok.ttype]
+		if infix == nil {
+			return left
+		}
+		p.next()
+		left = infix(left)
+	}
+
 	return left
 }
 
@@ -163,6 +194,18 @@ func (p *Parser) parseprefixexpr() expression {
 	return expr
 }
 
+func (p *Parser) parseinfixexpr(l expression) expression {
+	expr := &infixexpr{
+		tok:      p.curtok,
+		operator: p.curtok.literal,
+		left:     l,
+	}
+	precedence := p.curprecedence()
+	p.next()
+	expr.right = p.parseexpr(precedence)
+	return expr
+}
+
 func (p *Parser) curtokis(t tokenType) bool {
 	return p.curtok.ttype == t
 }
@@ -188,6 +231,20 @@ func (p *Parser) peekerror(t tokenType) {
 func (p *Parser) noprefixfound(t tokenType) {
 	msg := fmt.Sprintf("no prefix parse function for %s found", t)
 	p.errors = append(p.errors, msg)
+}
+
+func (p *Parser) peekprecedence() int {
+	if p, ok := precedences[p.nexttok.ttype]; ok {
+		return p
+	}
+	return LOWEST
+}
+
+func (p *Parser) curprecedence() int {
+	if p, ok := precedences[p.curtok.ttype]; ok {
+		return p
+	}
+	return LOWEST
 }
 
 func (p *Parser) registerprefix(tok tokenType, fn prefixparse) {

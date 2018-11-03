@@ -135,3 +135,22 @@ func (p *prefixexpr) tostring() string {
 	out.WriteString(")")
 	return out.String()
 }
+
+type infixexpr struct {
+	tok      token
+	left     expression
+	operator string
+	right    expression
+}
+
+func (i *infixexpr) expressionnode()      {}
+func (i *infixexpr) tokenliteral() string { return i.tok.literal }
+
+func (i *infixexpr) tostring() string {
+	var out bytes.Buffer
+	out.WriteString("(")
+	out.WriteString(i.operator)
+	out.WriteString(i.right.tostring())
+	out.WriteString(")")
+	return out.String()
+}

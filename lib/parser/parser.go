@@ -57,6 +57,7 @@ func NewParser(input string) *Parser {
 	temp.registerprefix(BANG, temp.parseprefixexpr)
 	temp.registerprefix(TRUE, temp.parseboolexpr)
 	temp.registerprefix(FALSE, temp.parseboolexpr)
+	temp.registerprefix(LPAREN, temp.parsegroupedexpr)
 
 	temp.infixparsefns = make(map[tokenType]infixparse)
 	temp.registerinfix(PLUS, temp.parseinfixexpr)
@@ -210,6 +211,17 @@ func (p *Parser) parseinfixexpr(l expression) expression {
 
 func (p *Parser) parseboolexpr() expression {
 	return &boolexpr{tok: p.curtok, value: p.curtokis(TRUE)}
+}
+
+func (p *Parser) parsegroupedexpr() expression {
+	p.next()
+	expr := p.parseexpr(LOWEST)
+
+	if !p.expect(RPAREN) {
+		return nil
+	}
+
+	return expr
 }
 
 func (p *Parser) curtokis(t tokenType) bool {
